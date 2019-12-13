@@ -1,0 +1,353 @@
+<!--Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+
+ limitations under the License.-->
+
+<div class="col-lg-12">
+	<h1>
+    	VIBeS Service Instantiation
+		<small>Wizzard </small>
+	</h1>
+    <ol class="breadcrumb">
+    	<li><a href="#main"><i class="fa fa-dashboard"></i>
+        	Overview</a></li>
+		<li class="active"><i class="fa fa-arrows-h"></i>
+        	VIBeS Slice Configuration&Launch
+		</li>
+	</ol>
+</div>
+</div>
+<div class="row">
+    <div class="col-lg-12 top-buffer">
+        <alert ng-repeat="alert in alerts" type="alert.type" close="closeAlert($index)">
+            <div ng-bind-html="alert.msg"></div>
+        </alert>
+		<div>
+		        <tabset>
+		            <tab heading="1. Service Descriptors">
+						<div class="row">
+	    				<div class="col-lg-12">
+					        <button id="deleteMultiple" href="#" ng-disabled="multipleDelete" class="btn btn-danger pull-right"
+					                ng-style="{'margin-left':'25px'}"
+					                title="Delete all the selected NSDs" data-target="#deleteModal" data-toggle="modal">Delete
+					        </button>
+					        <div class="btn-group right">
+					            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown"> On Board NSD
+					                <span class="caret"></span></button>
+					            <ul class="dropdown-menu" role="menu">
+					                <li><a href="" ng-click="loadUploadNSDDialog()">Upload JSON</a>
+					                </li>
+					            </ul>
+					        </div>
+					    </div>
+						</div>
+				        <div class="table-responsive" ng-if="nsdescriptors.length > 0">
+				            <table ng-table="tableParamspaginationNSD"
+				                   class="table table-bordered table-striped table-hover tablesorter" id="nsdTabletable">
+				                <thead>
+				                <tr>
+				                    <td><input ng-disabled="true" type="checkbox" ng-model="main.checkbox"></td>
+				                    <th class="col-sm-4" ng-click="predicate = 'id'; reverse = !reverse">Id <i class="fa fa-sort"></i>
+				                    </th>
+				                    <th ng-click="predicate = 'name'; reverse = !reverse">NSD Name <i class="fa fa-sort"></i></th>
+				                    <th ng-click="predicate = 'vendor'; reverse = !reverse">Vendor <i class="fa fa-sort"></i></th>
+				                    <th ng-click="predicate = 'version'; reverse = !reverse">Version <i class="fa fa-sort"></i></th>
+				                    <th ng-click="predicate = 'createdAt'; reverse = !reverse">Created at <i class="fa fa-sort"></i>
+				                    </th>
+				                    <th ng-click="predicate = 'updatedAt'; reverse = !reverse">Updated at <i class="fa fa-sort"></i>
+				                    </th>
+				                </tr>
+				                </thead>
+				                <tbody>
+				                <tr ng-repeat="nsd in $data | orderBy:predicate:reverse">
+				                    <td><input type="checkbox" ng-init="selectionNSD.ids[nsd.id] = false" 
+				                    		ng-model="selectionNSD.ids[nsd.id]" name="group" id="{{nsd.id}}" ng-click="onClickNSD(nsd.id)"/></td>
+				                    <td class="text-center">{{nsd.id}}</td>
+				                    <td class="text-center">{{nsd.name}}</td>
+				                    <td class="text-center">{{nsd.vendor}}</td>
+				                    <td class="text-center">{{nsd.version}}</td>
+				                    <td class="text-center">{{nsd.createdAt}}</td>
+				                    <td class="text-center">{{nsd.updatedAt}}</td>
+				                </tr>
+				                </tbody>
+				            </table>
+				        </div>
+        						
+		            </tab>		        		        		        
+	            <tab heading="2. Configured Slices (5G Operator)">
+	                <div class="table-responsive">
+	                    <table class="table table-bordered table-striped table-hover tablesorter"
+	                           ng-show="slices.length > 0">
+	                        <thead>
+	                        <tr>
+								<td><input ng-disabled="true" type="checkbox" ng-model="main.checkbox"></td>
+				                <th class="col-sm-4" ng-click="predicate = 'id'; reverse = !reverse">Id <i class="fa fa-sort"></i>
+				                </th>
+								<th> Ingress IP</th>						
+								<th> Description</th>														
+	                        </tr>							
+	                        </thead>
+	                        <tbody>
+	                        <tr ng-repeat="data in slices">
+								<td><input type="checkbox" ng-init="selectionSlice.ids[data.name] = false" ng-model="selectionSlice.ids[data.name]"
+				                	name="group" id="{{data.name}}" ng-click="onClickSlice(data.name)"/></td>
+	                            <td> {{data.apnName}}</td>
+	                            <td> {{data.ingressIp}}</td>
+	                            <td> {{data.description}}</td>	                            
+	                        </tr>
+	                        </tbody>
+	                    </table>
+	                </div>
+	            </tab>
+
+	            <tab heading="3. Virtual Link">
+	                <div class="table-responsive">
+	                </p>
+	                <table ng-table="tableParamspaginationNSD" class="table table-hover">
+						<thead>
+	                    	<tr>
+								<th class="text-center"> Network Function </th>
+	                        	<th class="text-center"> (V)Links </th>
+							</tr>
+						</thead>
+						<tr>
+							<td>						                            				
+								<table class="table table-hover" id="vnfdTabletable1">
+		                            <thead>
+		                            <tr>
+		                                <th class="col-sm-4" ng-click="predicate = 'id'; reverse = !reverse">VNF Id<i
+		                                        class="fa fa-sort" class="text-center"></i>
+		                                </th>
+		                                <th ng-click="predicate = 'name'; reverse = !reverse">VNFD Name <i
+		                                        class="fa fa-sort" class="text-center"></i></th>
+		                                <th class="text-center"></i>PoP</th>		                                        
+		                            </tr>
+		                            </thead>
+		                            <tbody ng-repeat="nsd in $data" ng-show="nsdToSend !== undefined">
+			                        	<tr ng-repeat="vnfd in nsd.vnfd | orderBy:predicate:reverse" ng-if="nsd.id == nsdToSend"> <!---->
+			                                <td><a href="#nsdescriptors/{{nsd.id}}/vnfdescriptors/{{vnfd.id}}">{{vnfd.id}}</a>
+			                                </td>
+			                                <td>{{vnfd.name}}</td> 
+			                                <td>{{vnfd.vdu[0].vimInstanceName}}</td> 			                                
+			                            </tr>
+		                            </tbody>
+		                        </table>
+		                     </td>
+		                     <td>
+								<table class="table table-hover"
+		                                class="table table-hover"
+		                                id="vnfdTabletable2">
+						        	<thead>
+										<tr>
+						                	<th>&nbsp;</th>
+						                    <th class="text-center">PoP</th>                                        
+						                    <th class="text-center">Network</th>
+										</tr>
+									</thead>										
+										<tbody ng-repeat="pop in pops" ng-show="nsdToSend !== undefined" ng-if="isVimOfInterest(pop.name) > 0">
+											<tr ng-repeat="network in pop.networks"
+												ng-if="network.name !== 'none' && network.name !== 'host' && network.name !== 'bridge' 
+												&& network.name !== 'localhost'">
+					                    		<td><input type="checkbox" ng-init="selectionLink.ids[network.name] = false"
+					                            		ng-model="selectionLink.ids[network.name]" name="group" id="{{network.name}}" 
+					                               		ng-click="onClickLink(network.name)">
+												</td>
+												<td align="center">{{pop.name}}</td>
+												<td align="center">{{network.name}}</td>
+											</tr>
+										</tbody>					                             
+								</table>
+							 </td>
+						</tr>
+	                </table>							                                                     				                             
+                    </div>    
+	            </tab>
+<!--
+	            <tab heading="3. Available links">
+	                <div class="table-responsive">                    
+			            <table ng-if="pops.length > 0" class="table table-bordered table-striped table-hover tablesorter">
+		                    <thead>
+						        <tr>
+									<th><input type="checkbox" ng-disabled="true" ng-model="main.checkbox"></th>
+						            <th ng-click="predicate = 'name'; reverse = !reverse">Name <i class="fa fa-sort"></i>
+		
+						            <th ng-click="predicate = 'subnet'; reverse = !reverse">Subnet <i class="fa fa-sort"></i></th>
+		
+						            <th ng-click="predicate = 'pop'; reverse = !reverse">PoP <i class="fa fa-sort"></i></th>
+						        </tr>
+					    	</thead>
+						    <tbody ng-repeat="data in pops">
+							    <tr ng-repeat="network in data.networks | orderBy:predicate:reverse" ng-if="network.name !== 'none' && network.name !== 'host' && network.name !== 'bridge'">
+							    	<td><input type="checkbox" ng-init="selectionLink.ids[network.name] = false"
+				                               ng-model="selectionLink.ids[network.name]" name="group" id="{{network.name}}"/></td>				    
+									<td>{{network.name}}</td>
+									<td>{{network.subnet}}</td>
+									<td>{{data.name}}</td>
+							    </tr>
+						    </tbody>
+						</table>
+			    	</div>
+	            </tab>	
+-->	            
+	            <tab heading="4. Launch Service">
+					<h3>Configuration Summary</h3>	            
+						<div class="row">
+					    <div class="col-lg-12">
+					        <div class="table-responsive">
+					            <table
+					                    class="table table-bordered table-hover tablesorter" id="wizzardSummary">
+					                <tbody>
+										<tr>
+											<td style="font-weight:bold">Service Id</td>
+											<td>{{nsdToSend}}</td>
+										</tr>
+										<tr>
+											<td style="font-weight:bold">Service Name</td>
+											<td>{{nsdIdNameAssoc[nsdToSend]}}</td>
+										</tr>										
+										<tr ng-repeat="(key, value) in selectionSlice.ids" ng-if="value !== false">
+											<td style="font-weight:bold">Slice Name</td>
+											<td>{{key}}</td>										
+										</tr>
+										<tr>
+											<td style="font-weight:bold">VNFPeP enabled</td>
+											<td>{{pepEnabled}}</td>
+										</tr>										
+										
+					                </tbody>
+					            </table>
+					        </div>
+					    </div>
+					</div>
+					<div class="col-lg-12">
+						<div>
+							<div>
+								<tabset>
+									<tab ng-repeat="nsdVNFAssoc in nsdIdVNFDIdAssoc" ng-show="nsdVNFAssoc['nsdId']==nsdToSend" 
+											heading="{{nfdIdNameAssoc[nsdVNFAssoc['vnfdId']]}}">
+										<div class="table-responsive">
+											<h4>Virtual Link</h4>
+											<table class="table table-bordered table-hover tablesorter" id="vLinkSummary">
+												<thead>
+													<tr>
+														<th>Name <i class="fa fa-sort"></i></th>
+													</tr>
+												</thead>
+												<tbody>
+													<tr ng-repeat="entry in vLinks" ng-if="nsdToSend!==undefined">
+														<td>{{entry.netName}}</td>			
+													</tr>
+												</tbody>
+											</table>
+										</div>
+									</tab>
+								<tabset>
+							</div>
+						</div>
+					</div>
+					
+					<div class="row">
+	    				<div class="btn">
+			        		<label>
+							<input type="checkbox" ng-init="pepEnabled = false"
+					                       ng-model="pepEnabled" name="group" id="pepsatellite" class="btn btn-danger right"
+							        ng-style="{'margin-left':'25px'}"/>
+							Enable VNFPeP
+						<label>
+						</div>
+						<div class="btn-group right">
+							<button id="deployButton" href="#" ng-click="deploy()" class="btn btn-danger pull-right"
+							        ng-style="{'margin-left':'25px'}"
+							        title="Deploy Service">Launch
+							</button>
+						</div>
+					</div>
+	            </tab>		            
+	        </tabset>      
+    </div>
+</div>
+
+<div class="modal" id="modalCreateNSDUploadjson" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header panel-heading">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <span class="modal-title" id="serviceFormLabel">Add a VIBeS Service Descriptor Template</span>
+            </div>
+            <tabset class="dailougebox">
+                <tab heading="Upload NSD">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Save VIBeS Network Service Template</h4>
+                        Here you can add an NSD via pasting the json or choosing a file. The NSD can contain either the
+                        whole VNFDs or their ids.
+                    </div>
+                    <div class="modal-body">
+                        <form role="form" id="formJson">
+                            <div class="form-group">
+
+                                <br> <label for="jsonInputArea">Insert Your Json</label>
+                                <textarea name="textTopologyJson" ng-model="textTopologyJson"
+                                          ng-change="changeText(textTopologyJson)" id="jsonInputArea"
+                                          class="form-control verticalresize" rows="5" placeholder="{ }"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="jsonInputFile">File input</label>
+                                <input type="file" id="jsonInputFile"
+                                       onchange="angular.element(this).scope().setFile(this)">
+
+                                <p class="help-block">Example: VIBeSnsd.json </p>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close
+                        </button>
+                        <button type="button" id="storeNSD" ng-click="sendFile(textTopologyJson)"
+                                class="btn btn-primary">Upload NSD
+                        </button>
+                    </div>
+                </tab>
+			</tabset>                	
+                <!--modal-content-->
+        </div>
+        <!--modal-dialog-->
+    </div>
+</div>
+   
+<!-- /.modal -->
+<div class="modal fade" tabindex="-1" role="dialog" id="deleteModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Delete Alert</h4>
+            </div>
+            <div class="modal-body">
+                <p>You have selected:</p>
+                <ul ng-repeat="(k,v) in selectionNSD.ids" ng-if="v !== false">
+                    <li>{{k}}</li>
+                </ul>
+                <p>Please confirm your selection.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" ng-click="multipleDeleteReq()" data-dismiss="modal">
+                    Delete
+                </button>
+            </div>
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>    

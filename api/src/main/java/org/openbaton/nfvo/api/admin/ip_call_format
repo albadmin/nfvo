@@ -1,0 +1,5 @@
+Post/Put: project_id | nsd_id | component_name | ip_address - return NONE
+Get: project_id | nsd_id | component_name - return: ip_address
+
+
+Both calls are authenticated and project_id is bundled in the auth_header

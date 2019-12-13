@@ -1,0 +1,304 @@
+<!--Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ 
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+ 
+      http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+ 
+  limitations under the License.-->
+<div class="row">
+    <div class="col-lg-12">
+        <h1>VIM Instances</h1>
+        <ol class="breadcrumb">
+            <li><a href="#main"><i class="fa fa-dashboard"></i>
+                Overview</a></li>
+            <li class="active"><i class="fa fa-tasks"></i> NFVI Point of Presences (PoPs)</li>
+        </ol>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12">
+        <button id="deleteMultiple" href="#" ng-disabled="multipleDelete" class="btn btn-danger pull-right"
+                ng-style="{'margin-left':'25px'}"
+                title="Delete all the items selected" data-target="#deleteModal" data-toggle="modal">Delete
+        </button>
+        <button id="btn_create_topology" class="btn btn-primary pull-right" title="Register a new PoP"
+                data-toggle="modal"
+                data-target="#modalDC" ng-click="clearInput()">Register a new PoP
+        </button>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12 top-buffer">
+        <alert ng-repeat="alert in alerts" type="alert.type" close="closeAlert($index)">
+            <div ng-bind-html="alert.msg"></div>
+        </alert>
+        <div>
+            <table ng-if="vimInstances.length > 0" class="table table-bordered table-striped table-hover tablesorter">
+                <thead>
+                <tr>
+                    <th><input type="checkbox" ng-model="main.checkbox"></th>
+                    <th ng-click="predicate = 'id'; reverse = !reverse">ID <i class="fa fa-sort"></i></th>
+                    <th ng-click="predicate = 'name'; reverse = !reverse">Name <i class="fa fa-sort"></i></th>
+                    <th ng-click="predicate = 'type'; reverse = !reverse">Type <i class="fa fa-sort"></i></th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr ng-repeat="data in vimInstances| orderBy:predicate:reverse">
+                    <td><input type="checkbox" ng-init="selection.ids[data.id] = false"
+                               ng-model="selection.ids[data.id]" name="group" id="{{data.id}}"/></td>
+                    <td><a href="#vim-instances/{{data.id}}">{{data.id}}</a></td>
+                    <td>{{data.name}}</td>
+                    <td>{{data.type}}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                                Action <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="" data-toggle="modal" data-target="#editModal"
+                                       ng-click="edit(data)">Edit</a></li>
+                                <li class="divider"></li>
+                                <li><a href="" ng-click="deleteData(data.id)">Delete</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<div class="modal " id="modalDC" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="serviceLabel">Register a new PoP</h4>
+            </div>
+            <tabset>
+                <tab heading="Form Input" ng-click="setFormInput()">
+                    <div class="modal-body">
+                        Here you can fill in the form in order to add the PoP to the NFVO Catalogues. The available types
+                        depend on the installed VIM drivers. PoPs can be added only when driver is installed and enabled in the system.
+                        Mandatory fields are marked with *.
+                        </br>
+                        </br>
+
+                        <form role="form" class="form-horizontal">
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">Type*</label>
+                                <div class="col-sm-6">
+                                    <select name="typeSelect" class="form-control modal-select"
+                                            ng-model="newvim.type"
+
+                                            ng-options="plugin.type as plugin.type for plugin in installed | orderBy:'name':false">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">PoP Name*</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control" ng-model="newvim.name"/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">URL*</label>
+                                <div class="col-sm-6">
+                                     <input type="text" class="form-control" ng-model="newvim.authUrl"/>
+                                </div>
+                            </div>
+                            <div class="form-group" ng-show="tenantNeeded">
+                                <label class="col-sm-4 control-label">Tenant*</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control" ng-model="newvim.tenant"/>
+                                </div>
+                            </div>
+                            <div class="form-group" ng-show="domainNeeded">
+                                <label class="col-sm-4 control-label">Domain</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control" ng-init="default" ng-model="newvim.domain"/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">Username<span ng-show="userNameNeeded">*</span></label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control" ng-model="newvim.username"/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">Password<span ng-show="passwordNeeded">*</span></label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control" ng-model="newvim.password"/>
+                                </div>
+                            </div>
+                            <div class="form-group" ng-show="keyPairNeeded">
+                                <label class="col-sm-4 control-label" >Key Pair</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control" ng-model="newvim.keyPair"/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">Location Name </label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control" ng-model="newvim.location.name"/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">Location latitude</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control" ng-model="newvim.location.latitude"/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">Location longitude </label>
+
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control" ng-model="newvim.location.longitude"/>
+                                </div>
+                            </div>
+                            <div class="form-group" ng-show="securityGroupsNeeded">
+                                <div ng-repeat="secG in newvim.securityGroups track by $index">
+                                    <label class="col-sm-4 control-label">Security Group </label>
+                                    <div class="col-sm-6">
+                                        <input type="text" class="form-control"
+                                               ng-model="newvim.securityGroups[$index]"/>
+                                        <br>
+                                    </div>
+                                    <i class="fa fa-trash-o col-sm-2" style="wdith:10px; padding-top:10px" href=""
+                                       ng-click="removeSecurityGroup($index)"></i>
+                                </div>
+                                <button style="margin-left:36%;" type="button" class="btn btn-primary"
+                                        ng-click="addSecurityGroup()">Add Security Group
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" title="Mandatory fields are marked with *" class="btn btn-primary"
+                                ng-disabled="!newvim.name || !newvim.authUrl || (!newvim.tenant && tenantNeeded) || (!newvim.username && userNameNeeded) || (!newvim.password && passwordNeeded)"
+                                ng-click="sendInfrastructure()" data-dismiss="modal">Send
+                        </button>
+                    </div>
+                </tab>
+                <tab heading="File Input" ng-click="setFileInput()">
+                    <div class="modal-body">
+                        Here you can simply paste the PoP information formatted in JSON or select a file to upload.
+                        <form role="form" id="formJson">
+                            <div class="form-group">
+                                <br> <label for="jsonInputArea">Plain text input (JSON formatted)</label>
+                                <textarea name="textTopologyJson" ng-model="textTopologyJson"
+                                          ng-change="changeText(textTopologyJson)" id="jsonInputArea"
+                                          class="form-control" rows="10" placeholder=""></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="jsonInputFile">File input</label>
+                                <input type="file" id="jsonInputFile"
+                                       onchange="angular.element(this).scope().setFile(this)">
+                                <p class="help-block">Example: pop.json </p>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" ng-disabled="!file && !textTopologyJson"
+                                ng-click="sendInfrastructure()" data-dismiss="modal">Send
+                        </button>
+                    </div>
+                </tab>
+            </tabset>
+        </div>
+    </div>
+</div>
+<div class="modal fade" tabindex="-1" role="dialog" id="editModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Edit</h4>
+            </div>
+            <div class="modal-body">
+                <form role="form" class="form-horizontal">
+                    <div class="form-group" ng-repeat="(key,value) in editObj"
+                         ng-if="key!='id' && isArray(value) && key!='hbVersion' && key!='projectId' && key!='active' && key!='version' && key!='type'">
+                        <label for="{{key}}" class="col-sm-4 control-label">{{key}}</label>
+                        <div class="col-sm-6">
+                            <input type="text" class="form-control" id="{{key}}" name="{{key}}"
+                                   ng-model="editObj[key]"/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">type</label>
+                        <div class="col-sm-6">
+                            <select name="typeSelect" class="form-control modal-select"
+                                    ng-model="editObj.type"
+                                    ng-options="plugin.type as plugin.type for plugin in installed | orderBy:'name':false">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">Location Name</label>
+                        <div class="col-sm-6">
+                            <input type="text" class="form-control" ng-model="editObj.location.name"/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">Location latitude</label>
+                        <div class="col-sm-6">
+
+                            <input type="text" class="form-control" ng-model="editObj.location.latitude"/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">Location longitude</label>
+                        <div class="col-sm-6">
+                            <input type="text" class="form-control" ng-model="editObj.location.longitude"/>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" ng-click="updateObj()">Update</button>
+            </div>
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+<!-- /.modal -->
+<div class="modal fade" tabindex="-1" role="dialog" id="deleteModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Delete Alert</h4>
+            </div>
+            <div class="modal-body">
+                <p>You have selected:</p>
+                <ul ng-repeat="(k,v) in selection.ids" ng-if="v">
+                    <li>{{k}}</li>
+                </ul>
+                <p>Please confirm your selection.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" ng-click="multipleDeleteReq()" data-dismiss="modal">
+                    Delete
+                </button>
+            </div>
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>

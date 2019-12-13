@@ -1,0 +1,280 @@
+#!/bin/sh
+
+# Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+##########################
+#### General Settings ####
+##########################
+
+set -e
+set -u
+#set -x # only for DEBUG
+
+# Make available the functions defined in /lib/lsb/init-functions
+. /lib/lsb/init-functions
+
+# Set the soft limit for max open file desciptors
+ulimit -S -n 4096
+
+
+##########################
+#### Global Variables ####
+##########################
+
+OPENBATON_COMPONENT_NAME_FANCY="NFV Orchestrator (NFVO)"
+OPENBATON_COMPONENT_NAME=nfvo
+
+OPENBATON_BASE_DIR=/usr
+OPENBATON_COMPONENT_EXE_DIR=${OPENBATON_BASE_DIR}/bin
+OPENBATON_PLUGINS_DIR=${OPENBATON_BASE_DIR}/lib/openbaton/plugins/vim-drivers
+
+OPENBATON_LOG_DIR="/var/log/openbaton"
+OPENBATON_PLUGINS_LOG_DIR="plugins"
+OPENBATON_PLUGINS_LOG_DIR_ABSOLUTE="${OPENBATON_LOG_DIR}/${OPENBATON_PLUGINS_LOG_DIR}"
+
+OPENBATON_BASE_CONFIG_DIR=/etc/openbaton
+OPENBATON_COMPONENT_CONFIG_FILE=openbaton-${OPENBATON_COMPONENT_NAME}.properties
+
+CONFIGURE_RABBITMQ_FOR_OPENBATON_DEFAULT=true
+CONFIGURE_RABBITMQ_FOR_OPENBATON=${CONFIGURE_RABBITMQ_FOR_OPENBATON:-$CONFIGURE_RABBITMQ_FOR_OPENBATON_DEFAULT}
+
+OPENBATON_COMPONENT_AUTOSTART_DEFAULT=true
+OPENBATON_COMPONENT_AUTOSTART=${OPENBATON_COMPONENT_AUTOSTART:-$OPENBATON_COMPONENT_AUTOSTART_DEFAULT}
+
+DEBIAN_FRONTEND_DEFAULT=dialog
+DEBIAN_FRONTEND=${DEBIAN_FRONTEND:-$DEBIAN_FRONTEND_DEFAULT}
+
+RABBITMQ_BROKER_IP_DEFAULT=localhost
+RABBITMQ_MANAGEMENT_PORT_DEFAULT=15672
+OPENBATON_ADMIN_PASSWORD_DEFAULT=openbaton
+
+
+##################
+#### RabbitMQ ####
+##################
+
+configure_rabbitmq () {
+    log_success_msg "Configuring RabbitMQ for Open Baton"
+    result=$(ps aux | grep -v 'grep' | grep 'rabbitmq' | wc -l)
+    if [ ${result} -gt 0 ]; then
+        result=$(rabbitmqctl list_users | grep '^admin' | wc -l)
+    	if [ ${result} -eq 0 ]; then
+            rabbitmq_admin_password=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)
+
+            rabbitmqctl add_user admin ${rabbitmq_admin_password}
+            rabbitmqctl set_user_tags admin administrator
+            rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
+            rabbitmq-plugins enable rabbitmq_management
+            service rabbitmq-server restart
+            if [ "$?" != "0" ]; then
+                log_failure_msg "rabbitmq is not running properly (check the problem in /var/log/rabbitmq)"
+                exit 1
+            fi
+
+            # Set the rabbitmq 'admin' password
+            export rabbitmq_admin_password=${rabbitmq_admin_password}
+            log_success_msg "Setting new 'admin' password: ${rabbitmq_admin_password}"
+            log_warning_msg "The 'admin' password has been randomly generated and you can find it in the '/etc/openbaton/openbaton-${OPENBATON_COMPONENT_NAME}.properties' properties file as the value of the 'spring.rabbitmq.password' property"
+            sed -i "s|spring.rabbitmq.password\s*=\s*.*|spring.rabbitmq.password=${rabbitmq_admin_password}|g" /etc/openbaton/openbaton-${OPENBATON_COMPONENT_NAME}.properties 
+        fi
+
+        # In case of "noninteractive" FRONTEND either the value from the configuration file or the default value will be used (DEFAULT: rabbitmq_broker_ip=localhost ; rabbitmq_management_port=15672)
+        if [ "${DEBIAN_FRONTEND}" != "Noninteractive" -a "${DEBIAN_FRONTEND}" != "noninteractive" ]; then
+            rabbitmq_broker_ip=$(whiptail --inputbox "\nEnter the RabbitMQ broker IP:" 8 140 localhost --title "Open Baton ${OPENBATON_COMPONENT_NAME_FANCY} configuration" 3>&1 1>&2 2>&3)
+            exit_status="$?"
+            if [ ${exit_status} != 0 ]; then
+                echo ""
+                log_warning_msg "Aborting Open Baton installation"
+                exit 1
+            fi
+            rabbitmq_management_port=$(whiptail --inputbox "\nEnter the RabbitMQ management port:" 8 140 15672 --title "Open Baton ${OPENBATON_COMPONENT_NAME_FANCY}configuration" 3>&1 1>&2 2>&3)
+            exit_status="$?"
+            if [ ${exit_status} != 0 ]; then
+                echo ""
+                log_warning_msg "Aborting Open Baton installation"
+                exit 1
+            fi
+        fi
+
+        # Set the rabbitmq broker ip
+        rabbitmq_broker_ip=${rabbitmq_broker_ip:-$RABBITMQ_BROKER_IP_DEFAULT}
+        export rabbitmq_broker_ip=${rabbitmq_broker_ip}
+        log_success_msg "Setting new broker IP: ${rabbitmq_broker_ip}"
+        sed -i "s|nfvo.rabbit.brokerIp\s*=\s*.*|nfvo.rabbit.brokerIp=${rabbitmq_broker_ip}|g" /etc/openbaton/openbaton-${OPENBATON_COMPONENT_NAME}.properties
+
+        # Set the rabbitmq management port
+        rabbitmq_management_port=${rabbitmq_management_port:-$RABBITMQ_MANAGEMENT_PORT_DEFAULT}
+        export rabbitmq_management_port=${rabbitmq_management_port}
+        log_success_msg "Setting new management port: ${rabbitmq_management_port}"
+        sed -i "s|nfvo.rabbit.management.port\s*=\s*.*|nfvo.rabbit.management.port=${rabbitmq_management_port}|g" /etc/openbaton/openbaton-${OPENBATON_COMPONENT_NAME}.properties
+    fi
+}
+
+
+####################
+#### Open Baton ####
+####################
+
+set_plugins_folder () {
+    export OPENBATON_PLUGINS_DIR="${OPENBATON_PLUGINS_DIR}"
+    sed -i "s|nfvo.plugin.installation-dir\s*=\s*./plugins|nfvo.plugin.installation-dir=${OPENBATON_PLUGINS_DIR}|g" /etc/openbaton/openbaton-${OPENBATON_COMPONENT_NAME}.properties
+}
+
+set_plugins_log_folder () {
+    export OPENBATON_PLUGINS_LOG_DIR_ABSOLUTE=${OPENBATON_PLUGINS_LOG_DIR_ABSOLUTE}
+
+    log_success_msg "Creating directory for Plugins logs"
+    mkdir -p ${OPENBATON_PLUGINS_LOG_DIR_ABSOLUTE}
+
+    log_success_msg "Configuring directory for Plugins logs"
+    sed -i "s|nfvo.plugin.log.path\s*=\s*.*|nfvo.plugin.log.path=${OPENBATON_PLUGINS_LOG_DIR_ABSOLUTE}|g" /etc/openbaton/openbaton-${OPENBATON_COMPONENT_NAME}.properties
+}
+
+configure_nfvo_admin_credentials () {
+    # In case of "noninteractive" FRONTEND either the value from the configuration file or the default value will be used (DEFAULT: openbaton_admin_password=openbaton)
+    if [ "${DEBIAN_FRONTEND}" != "Noninteractive" -a "${DEBIAN_FRONTEND}" != "noninteractive" ]; then
+        openbaton_admin_password=$(whiptail --passwordbox "\nProvide the new password for 'admin' user of open baton [openbaton]:" 8 140 openbaton --title "Open Baton ${OPENBATON_COMPONENT_NAME_FANCY} configuration" 3>&1 1>&2 2>&3)
+        exit_status="$?"
+        if [ ${exit_status} != 0 ]; then
+            echo ""
+            log_warning_msg "Aborting Open Baton installation"
+            exit 1
+        fi
+
+        if [ "${openbaton_admin_password}" != "" ]; then
+            openbaton_admin_password_again=$(whiptail --passwordbox "\nRepeat the 'admin' password:" 8 140 --title "Open Baton ${OPENBATON_COMPONENT_NAME_FANCY} configuration" 3>&1 1>&2 2>&3)
+            exit_status="$?"
+            if [ ${exit_status} != 0 ]; then
+               echo ""
+               log_warning_msg "Aborting open baton installation"
+               exit 1
+            fi
+            if [ "${openbaton_admin_password}" != "${openbaton_admin_password_again}" ]; then
+                configure_nfvo_admin_credentials
+            fi
+        fi
+    fi
+
+    # Set the openbaton admin password
+    openbaton_admin_password=${openbaton_admin_password:-$OPENBATON_ADMIN_PASSWORD_DEFAULT}
+    export openbaton_admin_password=${openbaton_admin_password}
+    sed -i "s|nfvo.security.admin.password\s*=\s*openbaton|nfvo.security.admin.password=${openbaton_admin_password}|g" /etc/openbaton/openbaton-${OPENBATON_COMPONENT_NAME}.properties
+}
+
+configure_new_installation () {
+    log_success_msg "Configuring Open Baton ${OPENBATON_COMPONENT_NAME_FANCY} installation .."
+    # Allow the use of the .deb package to install Open Baton with Docker (because of issues when installing and configuring RabbitMQ during a docker image build) 
+    if [ "${CONFIGURE_RABBITMQ_FOR_OPENBATON}" = "true" ]; then
+        configure_rabbitmq
+    fi
+    set_plugins_folder
+    set_plugins_log_folder
+    configure_nfvo_admin_credentials
+    chmod a+x ${OPENBATON_COMPONENT_EXE_DIR}/openbaton-${OPENBATON_COMPONENT_NAME}
+    log_success_msg "Open Baton ${OPENBATON_COMPONENT_NAME_FANCY} installation completed"
+}
+
+configure_for_upgrade () {
+    ## Procedure to merge old and new properties files ##
+
+    # The old properties file is copied in /tmp before this upgrade procedure is executed (see 'prerm' file)
+    cp /tmp/${OPENBATON_COMPONENT_CONFIG_FILE} /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.old
+    cp ${OPENBATON_BASE_CONFIG_DIR}/${OPENBATON_COMPONENT_CONFIG_FILE} /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.new
+
+    # Extract the properties keys from the old properties file
+    awk -F'=' '{if($0 ~ "=") {print $1 "="}}' /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.old > /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.old_keys
+    sed -i '/\.[a-zA-Z\-]*\ *=/b; /.*=/d' /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.old_keys
+    sed -i s/\#//g /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.old_keys
+    sed -i s/\ //g /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.old_keys
+
+    # Extract the properties keys from the new properties file
+    awk -F'=' '{if($0 ~ "=") {print $1 "="}}' /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.new > /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.new_keys
+    sed -i '/\.[a-zA-Z\-]*\ *=/b; /.*=/d' /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.new_keys
+    sed -i s/\#//g /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.new_keys
+    sed -i s/\ //g /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.new_keys
+
+    # Extract the common properties keys between the old and new properties files
+    grep -Fwf /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.new_keys /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.old_keys > /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.common_keys
+
+    # Extract the all line from the old property file for each common properties key
+    sed -i s/=//g /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.new_keys
+    grep -Fwf /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.new_keys /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.old      > /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.common_keys_old_lines
+
+    # For each common key overwrite the old property value in the new properties file
+    exec 3</tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.common_keys
+    exec 4</tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.common_keys_old_lines
+    while IFS='' read -r key <&3 && read -r line <&4; do
+        key=$(echo $key | awk -F'=' '{print $1}')
+        sed -i "s|.*${key}\s*=.*|${line}|" /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.new
+    done
+    exec 3<&-
+    exec 4<&-
+
+    # Overwrite the new properties file with the 'upgraded' new properties file
+    mv /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}.new ${OPENBATON_BASE_CONFIG_DIR}/${OPENBATON_COMPONENT_CONFIG_FILE}
+
+    # Clear tmp files used for upgrade
+    rm /tmp/${OPENBATON_COMPONENT_CONFIG_FILE}*
+
+    log_success_msg "Upgrading Open Baton ${OPENBATON_COMPONENT_NAME_FANCY} installation .."
+}
+
+fix_db_connectors_used () {
+    sed -i "s|spring.datasource.driver-class-name\s*=\s*com.mysql.jdbc.Driver|spring.datasource.driver-class-name=org.mariadb.jdbc.Driver|g" /etc/openbaton/openbaton-${OPENBATON_COMPONENT_NAME}.properties
+}
+
+start_component () {
+    # Allow the use of the .deb package to install Open Baton with Docker (the Docker file developer need to manage the starting of the NFVO in the Docker file) 
+    if [ "${OPENBATON_COMPONENT_AUTOSTART}" = "true" ]; then
+        if systemctl start openbaton-${OPENBATON_COMPONENT_NAME}.service >/dev/null 2>&1 ; then
+            log_success_msg "Starting the Open Baton ${OPENBATON_COMPONENT_NAME_FANCY} .."
+        elif service openbaton-${OPENBATON_COMPONENT_NAME} start >/dev/null 2>&1 ; then
+           log_success_msg "Starting the Open Baton ${OPENBATON_COMPONENT_NAME_FANCY} .."
+        elif start openbaton-${OPENBATON_COMPONENT_NAME} >/dev/null 2>&1 ; then
+           log_success_msg "Starting the Open Baton ${OPENBATON_COMPONENT_NAME_FANCY} .."
+        else 
+            log_failure_msg "Starting the Open Baton ${OPENBATON_COMPONENT_NAME_FANCY}"
+        fi
+    fi
+}
+
+
+##############
+#### Main ####
+##############
+
+case "${1}" in
+    configure)
+        if [ "${2}" = "" ]; then # new installation (during first installation the postinst file is invoked as: 'postinst configure')
+            configure_new_installation
+        else # upgrade (during upgrade the postinst file is invoked as: 'postinst configure <old_version_number>')
+            configure_for_upgrade
+            fix_db_connectors_used
+        fi 
+        ;;
+
+    remove|purge|failed-upgrade|abort-install|abort-upgrade|disappear)
+        ;;
+
+    *)
+        log_failure_msg "postinst called with unknown argument ${1}"
+        exit 1
+        ;;
+esac
+
+start_component
+
+exit 0

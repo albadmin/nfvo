@@ -1,0 +1,8 @@
+----------------------------------------------------------------
+Wed Nov 06 14:44:09 CET 2019:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.7.1.1 - (1040133): instance a816c00e-016e-40f5-5397-00000815ab30 
+on database directory /opt/openbaton/nfvo/generic-vnfm.db  with class loader org.springframework.boot.loader.LaunchedURLClassLoader@2f2c9b19 
+Loaded from jar:file:/opt/openbaton/generic-vnfm/build/libs/generic-vnfm-6.0.1-SNAPSHOT.jar!/BOOT-INF/lib/derby-10.7.1.1.jar!/
+java.vendor=Oracle Corporation
+java.runtime.version=1.8.0_181-8u181-b13-1ubuntu0.16.04.1-b13
+Database Class Loader started - derby.database.classpath=''

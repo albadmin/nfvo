@@ -1,0 +1,147 @@
+/*
+ * Copyright (c) 2015-2018 Open Baton (http://openbaton.org)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.openbaton.nfvo.vnfm_reg.tasks;
+
+import java.util.concurrent.ExecutionException;
+import org.openbaton.catalogue.mano.common.Event;
+import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
+import org.openbaton.catalogue.mano.record.VNFCInstance;
+import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.Action;
+import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
+import org.openbaton.catalogue.nfvo.messages.OrVnfmStartStopMessage;
+import org.openbaton.exceptions.BadFormatException;
+import org.openbaton.exceptions.NotFoundException;
+import org.openbaton.nfvo.vnfm_reg.tasks.abstracts.AbstractTask;
+import org.openbaton.vnfm.interfaces.sender.VnfmSender;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Service;
+
+/** Created by lto on 06/08/15. */
+@Service
+@Scope("prototype")
+@ConfigurationProperties(prefix = "nfvo.start")
+public class StartTask extends AbstractTask {
+
+  private String ordered;
+  private VNFCInstance vnfcInstance;
+
+  @Override
+  public boolean isAsync() {
+    return true;
+  }
+
+  public void setOrdered(String ordered) {
+    this.ordered = ordered;
+  }
+
+  public VNFCInstance getVnfcInstance() {
+    return vnfcInstance;
+  }
+
+  public void setVnfcInstance(VNFCInstance vnfcInstance) {
+    this.vnfcInstance = vnfcInstance;
+  }
+
+  @Override
+  public NFVMessage doWork() throws Exception, BadFormatException {
+    log.info("Started VNFR: " + virtualNetworkFunctionRecord.getName());
+    VirtualNetworkFunctionRecord existing =
+        vnfrRepository.findFirstById(virtualNetworkFunctionRecord.getId());
+    log.trace("VNFR existing hibernate version = " + existing.getHbVersion());
+    log.trace("VNFR reiceived hibernate version = " + virtualNetworkFunctionRecord.getHbVersion());
+
+    virtualNetworkFunctionRecord
+        .getVdu()
+        .forEach(
+            vdu -> {
+              log.trace(
+                  "VDU ("
+                      + vdu.getId()
+                      + ") received with hibernate version = "
+                      + vdu.getHbVersion());
+            });
+
+    existing
+        .getVdu()
+        .forEach(
+            vdu -> {
+              log.trace(
+                  "VDU ("
+                      + vdu.getId()
+                      + ") existing hibernate version is = "
+                      + vdu.getHbVersion());
+            });
+
+    for (VirtualDeploymentUnit virtualDeploymentUnit : virtualNetworkFunctionRecord.getVdu()) {
+      for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()) {
+        log.trace("VNFCI received hibernate version = " + vnfcInstance.getHbVersion());
+      }
+    }
+
+    for (VirtualDeploymentUnit virtualDeploymentUnit : existing.getVdu()) {
+      for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()) {
+        log.trace("VNFCI existing hibernate version = " + vnfcInstance.getHbVersion());
+      }
+    }
+
+    setHistoryLifecycleEvent();
+    saveVirtualNetworkFunctionRecord();
+
+    if (ordered != null && Boolean.parseBoolean(ordered)) {
+      VirtualNetworkFunctionRecord nextToCallStart =
+          getNextToCallStart(virtualNetworkFunctionRecord);
+      if (nextToCallStart != null) {
+        log.info(
+            "Calling START for VNFR: "
+                + nextToCallStart.getName()
+                + " because is the next in order (ordered deployment is enabled in the openbaton-nfvo.properties)");
+        vnfmManager.removeVnfrName(
+            virtualNetworkFunctionRecord.getParent_ns_id(), nextToCallStart.getName());
+        sendStart(nextToCallStart);
+      }
+    }
+
+    return null;
+  }
+
+  private void sendStart(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord)
+      throws NotFoundException, BadFormatException, ExecutionException, InterruptedException {
+    VnfmSender vnfmSender;
+    vnfmSender =
+        this.getVnfmSender(
+            vnfmRegister.getVnfm(virtualNetworkFunctionRecord.getEndpoint()).getEndpointType());
+    /*vnfmSender.sendCommand(
+    new OrVnfmGenericMessage(virtualNetworkFunctionRecord, Action.START),
+    vnfmRegister.getVnfm(virtualNetworkFunctionRecord.getEndpoint()));*/
+    vnfStateHandler.executeAction(
+        vnfmSender.sendCommand(
+            new OrVnfmStartStopMessage(virtualNetworkFunctionRecord, null, Action.START),
+            vnfmRegister.getVnfm(virtualNetworkFunctionRecord.getEndpoint())));
+  }
+
+  @Override
+  protected void setEvent() {
+    event = Event.START.name();
+  }
+
+  @Override
+  protected void setDescription() {
+    description = "The start scripts were executed correctly on this VNFR";
+  }
+}
