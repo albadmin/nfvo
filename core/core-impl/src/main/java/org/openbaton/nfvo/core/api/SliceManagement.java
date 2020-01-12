@@ -100,13 +100,13 @@ public class SliceManagement implements org.openbaton.nfvo.core.interfaces.Slice
   }
 
   private BaseSlice parseSliceObject(JsonObject slice) {
-    String name = slice.get("name").getAsString();
-    String description = slice.get("description").getAsString();
-    String ingressIp = slice.get("ingressIp").getAsString();
-    // Get employee website name
-    String apname = slice.get("apnName").getAsString();
+    String name = (slice.get("name") != null) ? slice.get("name").getAsString() : "N/A";
+    String description =
+        (slice.get("description") != null) ? slice.get("description").getAsString() : "N/A";
+    String subnetwork =
+        (slice.get("subnetwork") != null) ? slice.get("subnetwork").getAsString() : "N/A";
 
-    return new BaseSlice(name, description, ingressIp, apname);
+    return new BaseSlice(name, description, subnetwork);
   }
 
   /** @param user */

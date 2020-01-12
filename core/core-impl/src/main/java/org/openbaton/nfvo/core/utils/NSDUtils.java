@@ -857,53 +857,79 @@ public class NSDUtils {
     }
   }
 
-  /** The logic is ok, only if vlinks in the nsd qualify the name attribute only. */
-  public void wizzardAttachLinks(NetworkServiceDescriptor nsd, List<String> vlink) {
-
-    if (vlink.size() != nsd.getVld().size()) {
-      log.debug(
-          "Expecting same number of links, however nsd.vlinks and vlinks "
-              + "have different sizes");
-      return;
-    }
+  /**
+   * The logic is ok, only if vlinks in the nsd qualify the name attribute only e.g., QoS and other
+   * link metrics are not mirrored..
+   */
+  public void wizzardAttachLinks(
+      NetworkServiceDescriptor nsd, String slice, List<String> interPoPLinks) {
 
     if (nsd.getVld().size() == 0) {
       log.debug("Expecting a number of vlds > 0 in the NSD ");
       return;
     }
 
-    // 1. check if there is any link match from the repository.
-    Map<String, String> linkDetails = buildVldMap(vlink);
-    log.info("VLDDs name-id: " + linkDetails + " from the set: " + vlink);
-    if (linkDetails.size() != vlink.size()) {
+    // 1. check if there is any link match from the repository for the slice vlink.
+    //	If any, retrieve its vlink entry (==id) through name, otherwise create it.
+    List<String> slices = new ArrayList<>();
+    slices.add(slice);
+    Map<String, String> repoSliceLinks = buildVldMap(slices);
+    log.info("VLDDs name-id: " + repoSliceLinks + " from the set: " + slices);
+    if (repoSliceLinks.size() != slices.size()) {
       log.info("Persisted vlinks and given vlinks number do not match");
-      if (linkDetails.size() < vlink.size()) {
-        Set<String> missing = computeMissingVlds(linkDetails, vlink);
+      if (repoSliceLinks.size() < slices.size()) {
+        Set<String> missing = computeMissingVlds(repoSliceLinks, slices);
         log.info("Missing links from repository are: " + missing);
-        createMissingVlds(nsd, missing, linkDetails);
+        createMissingVlds(nsd, missing, repoSliceLinks);
       } else {
         // do nothing.
       }
     }
 
-    // change global (nsd) vlds
-    int index = 0;
-    for (VirtualLinkDescriptor vld : nsd.getVld()) {
-      vld.setName(vlink.get(index));
-      vld.setId(linkDetails.get(vlink.get(index)));
-      index++;
+    // 1. check if there is any link match from the repository for the inter pop vlinks.
+    Map<String, String> repoInterPoPLinks = buildVldMap(interPoPLinks);
+    log.info("VLDDs name-id: " + repoInterPoPLinks + " from the set: " + interPoPLinks);
+    if (repoInterPoPLinks.size() != interPoPLinks.size()) {
+      log.info("Persisted vlinks and given vlinks number do not match");
+      if (repoInterPoPLinks.size() < interPoPLinks.size()) {
+        Set<String> missing = computeMissingVlds(repoInterPoPLinks, interPoPLinks);
+        log.info("Missing links from repository are: " + missing);
+        createMissingVlds(nsd, missing, repoInterPoPLinks);
+      } else {
+        // do nothing.
+      }
     }
 
-    // change local (vdu) vlds and connection points
+    // 2. 	Change local (vdu) vlds and connection points for the slice vlink.
+    //	Only 1 such entry is currently handled per vnfc.
     for (VirtualNetworkFunctionDescriptor vnfd : nsd.getVnfd()) {
-      // single vdu only
+      // XXX: single vdu only!
       VirtualDeploymentUnit vdu = vnfd.getVdu().iterator().next();
-      // several vnfc?
+      // XXX: several vnfc?
       for (VNFComponent vnfc : vdu.getVnfc()) {
         for (VNFDConnectionPoint conP : vnfc.getConnection_point()) {
-          String vldname = matchingVld(conP.getVirtual_link_reference(), vlink);
-          conP.setVirtual_link_reference(vldname);
-          conP.setVirtual_link_reference_id(linkDetails.get(vldname));
+          if (conP.getVirtual_link_reference().indexOf("_APN_") != -1) {
+            conP.setVirtual_link_reference(slice);
+            conP.setVirtual_link_reference_id(repoSliceLinks.get(slice));
+            break;
+          }
+        }
+      }
+    }
+
+    // 2. change local (vdu) vlds and connection points for interPoPLinks
+    for (VirtualNetworkFunctionDescriptor vnfd : nsd.getVnfd()) {
+      // XXX: single vdu only
+      VirtualDeploymentUnit vdu = vnfd.getVdu().iterator().next();
+      // XXX: several vnfc?
+      for (VNFComponent vnfc : vdu.getVnfc()) {
+        int index = 0;
+        for (VNFDConnectionPoint conP : vnfc.getConnection_point()) {
+          if (conP.getVirtual_link_reference().indexOf("_NET") != -1) {
+            conP.setVirtual_link_reference(interPoPLinks.get(index));
+            conP.setVirtual_link_reference_id(repoInterPoPLinks.get(interPoPLinks.get(index)));
+            index++;
+          }
         }
       }
     }
@@ -995,22 +1021,5 @@ public class NSDUtils {
       }
     }
     return linkDetails;
-  }
-
-  private String matchingVld(String vnfcVld, List<String> vlink) {
-    String searchFor = null;
-    if (vnfcVld.indexOf("terr") != -1) { // terrestrial link
-      searchFor = "terr";
-    } else if (vnfcVld.indexOf("sat") != -1) {
-      searchFor = "sat";
-    } else {
-      log.debug("vnfc link has not been configured properly");
-      return vnfcVld;
-    }
-    for (String vl : vlink) {
-      if (vl.indexOf(searchFor) != -1) return vl;
-    }
-    log.debug("No appropriate vlink substitute found for: " + vnfcVld);
-    return vnfcVld;
   }
 }

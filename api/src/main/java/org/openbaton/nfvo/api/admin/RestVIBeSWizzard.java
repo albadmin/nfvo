@@ -35,6 +35,7 @@ import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
 import org.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
 import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
 import org.openbaton.catalogue.nfvo.Configuration;
+import org.openbaton.catalogue.nfvo.vibeswizzard.BaseInterPoPLink;
 import org.openbaton.catalogue.nfvo.vibeswizzard.BaseSlice;
 import org.openbaton.catalogue.nfvo.viminstances.BaseVimInstance;
 import org.openbaton.exceptions.AlreadyExistingException;
@@ -49,6 +50,7 @@ import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.exceptions.WrongStatusException;
+import org.openbaton.nfvo.core.interfaces.InterPoPLinkManagement;
 import org.openbaton.nfvo.core.interfaces.NetworkServiceDescriptorManagement;
 import org.openbaton.nfvo.core.interfaces.NetworkServiceRecordManagement;
 import org.openbaton.nfvo.core.interfaces.SliceManagement;
@@ -67,18 +69,18 @@ import org.thavam.util.concurrent.blockingMap.BlockingHashMap;
 public class RestVIBeSWizzard {
 
   private Logger log = LoggerFactory.getLogger(this.getClass());
+  // nsdId, vnfName, ip_addr
+  private BlockingHashMap<String, BlockingHashMap<String, String>> ems =
+      new BlockingHashMap<String, BlockingHashMap<String, String>>();
 
   @Autowired private VimManagement vimManagement;
   @Autowired private SliceManagement sliceManagement;
+  @Autowired private InterPoPLinkManagement interPoPLinkManagement;
   @Autowired private NetworkServiceDescriptorManagement networkServiceDescriptorManagement;
   @Autowired private VirtualNetworkFunctionManagement vnfdManagement;
   @Autowired private NetworkServiceRecordManagement networkServiceRecordManagement;
 
   @Autowired private Gson gson;
-
-  // nsdId, vnfName, ip_addr
-  private BlockingHashMap<String, BlockingHashMap<String, String>> ems =
-      new BlockingHashMap<String, BlockingHashMap<String, String>>();
 
   /**
    * @param id of the NSD
@@ -120,11 +122,11 @@ public class RestVIBeSWizzard {
     List keys = null;
     Map<String, Set<String>> vduVimInstances = null;
     Map<String, Configuration> configurations = null;
-    List<String> vLink = new ArrayList<>();
+    List<String> interPoPLink = new ArrayList<>();
 
     String slice = null;
-    List<String> pops = new ArrayList<>();
-    boolean pepEnabled = false;
+    //    List<String> pops = new ArrayList<>();
+    //    boolean pepEnabled = false;
 
     if (body != null) {
       try {
@@ -148,18 +150,18 @@ public class RestVIBeSWizzard {
         }
 
         if (body.has("link")) {
-          fillInVlinkConfig(body.get("link").getAsJsonArray(), vLink);
+          fillInLinkConfig(body.get("link").getAsJsonArray(), interPoPLink);
         }
-        if (body.has("vnfpep")) {
-          pepEnabled = body.get("vnfpep").getAsBoolean();
-        }
+        //        if (body.has("vnfpep")) {
+        //          pepEnabled = body.get("vnfpep").getAsBoolean();
+        //        }
       } catch (Exception e) {
         throw new BadRequestException("The passed request body is not correct.");
       }
     }
 
     return networkServiceRecordManagement.onboard(
-        id, projectId, keys, vduVimInstances, configurations, monitoringIp, vLink);
+        id, projectId, keys, vduVimInstances, configurations, monitoringIp, slice, interPoPLink);
   }
 
   /**
@@ -251,6 +253,25 @@ public class RestVIBeSWizzard {
         networkServiceDescriptorManagement.queryByProjectId(projectId);
   }
 
+  /**
+   * This operation returns the Network Service Descriptor (NSD) selected by id
+   *
+   * @param id of Network Service Descriptor
+   * @return NetworkServiceDescriptor: the Network Service Descriptor selected @
+   */
+  @ApiOperation(
+      value = "Get Network Service Descriptor by id",
+      notes = "Returns the Network Service Descriptor with the id in the URL")
+  @RequestMapping(value = "/ns-descriptors/{id}", method = RequestMethod.GET)
+  public NetworkServiceDescriptor findById(
+      @PathVariable("id") String id, @RequestHeader(value = "project-id") String projectId)
+      throws NotFoundException {
+    NetworkServiceDescriptor nsd = networkServiceDescriptorManagement.query(id, projectId);
+    if (nsd == null)
+      throw new NotFoundException("Did not find a Network Service Descriptor with ID " + id);
+    return nsd;
+  }
+
   @ApiOperation(
       value = "Retrieve all registered slices",
       notes = "Returns all registered configured slices")
@@ -269,6 +290,26 @@ public class RestVIBeSWizzard {
       e.printStackTrace();
     }
     return slices;
+  }
+
+  @ApiOperation(
+      value = "Retrieve all registered inter pop links",
+      notes = "Returns all registered configured inter pop links")
+  @RequestMapping(
+      value = "/interPoPLinks",
+      method = RequestMethod.GET,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public List<BaseInterPoPLink> listInterPoPLinks() {
+    log.debug(this.getClass().getName() + " issued a call for all inter pop links");
+    List<BaseInterPoPLink> interPoPLinks = new ArrayList<>();
+    try {
+      interPoPLinks = interPoPLinkManagement.retrieveFromLocalFile();
+    } catch (NotFoundException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return interPoPLinks;
   }
 
   @ApiOperation(
@@ -307,7 +348,7 @@ public class RestVIBeSWizzard {
       @PathVariable("ip") String ipAddr,
       @RequestHeader(value = "project-id") String projectId)
       throws NotFoundException {
-    log.info("Received dependency");
+    log.info("Received dependency with IPAddr: " + ipAddr);
     // check whether nsd is present
     NetworkServiceDescriptor nsd = networkServiceDescriptorManagement.query(nsdId, projectId);
     if (nsd == null) throw new NotFoundException("No NSD found with ID " + nsdId);
@@ -319,8 +360,12 @@ public class RestVIBeSWizzard {
     if (!ems.containsKey(nsdId)) {
       BlockingHashMap<String, String> map = new BlockingHashMap<>();
       ems.put(nsdId, map);
+    } else {
+      if (ems.get(nsdId).containsKey(vnfName)) {
+        ems.get(nsdId).remove(vnfName);
+      }
+      ems.get(nsdId).put(vnfName, ipAddr);
     }
-    ems.get(nsdId).put(vnfName, ipAddr);
   }
 
   /** dependecy/{nsdId}/vnfName/{vnfName} */
@@ -351,14 +396,14 @@ public class RestVIBeSWizzard {
     }
   }
 
-  private void fillInVlinkConfig(JsonArray data, List<String> config) {
+  private void fillInLinkConfig(JsonArray data, List<String> config) {
     Iterator<JsonElement> it = data.iterator();
     String entry = null;
     String[] value = null;
     while (it.hasNext()) {
       entry = it.next().getAsString();
       config.add(entry);
-      log.info("vLink entry: " + entry);
+      log.info("inter pop link entry: " + entry);
     }
   }
 }

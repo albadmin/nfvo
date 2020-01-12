@@ -21,16 +21,21 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
     var urlSlices = baseUrl + 'slices/';
     $scope.slices = [];
     
+    var urlInterPoPLinks = baseUrl + 'interPoPLinks/';
+    $scope.interPoPLinks = [];
+    $scope.links = [];//actually selected links   
+    
     var urlPoPs = baseUrl + 'pops/';
 	$scope.pops = [];
 
-	$scope.selectionLink = {};
-	$scope.selectionLink.ids = {};
+	$scope.selectionInterPoPLink = {};
+	$scope.selectionInterPoPLink.ids = {};
 
 	//call functs.
     $scope.selectionSlice = {};
     $scope.selectionSlice.ids = {};
 	loadSlices();
+	loadInterPoPLinks();
     loadPoPs();
 
     var urlNSD = baseUrl + 'ns-descriptors/';  
@@ -38,10 +43,8 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
     $scope.selectionNSD = {};
     $scope.selectionNSD.ids = {};
     $scope.nsdescriptors = [];    
-	loadNSD();
+	loadNSDs();
     $scope.NSDInstanceJson = {};
-
-    $scope.pepEnabled = false;
 
     $scope.keys = [];    
 	$scope.nsdToSend = {};
@@ -106,7 +109,7 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
                 http.post(baseUrl, postNSD)
                     .success(function (response) {
                         showOk('Network Service Descriptors stored!');
-                        loadNSD();
+                        loadNSDs();
                     })
                     .error(function (data, status) {
                         showError(data, status);
@@ -134,7 +137,7 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
     };
     
 
-    function loadNSD() {
+    function loadNSDs() {
 		http.get(urlNSD)
         	.success(function (response, status) {
             	$scope.nsdescriptors = response;
@@ -147,12 +150,58 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
 			});
     }
 
+    $scope.nsd = {};    
+	$scope.vnfdnames = [];
+    $scope.loadNSD = function (nsdId) {
+		http.get(urlNSD + nsdId)
+        	.success(function (response, status) {
+        		$scope.launchConfiguration = null;
+        		$scope.launchConfiguration = {"configurations": {}};
+				$scope.vnfdnames = [];    			
+            	$scope.nsd = response;
+            	console.log($scope.nsd);
+        		$scope.nsd.vnfd.map(function (vnfd) {
+            	$scope.vnfdnames.push(vnfd.name);
+	            	if (vnfd.configurations === undefined || vnfd.configurations.length < 1) {
+	                	$scope.launchConfiguration.configurations[vnfd.name] = {name: "", configurationParameters: []};
+	            	} else {
+	                	$scope.launchConfiguration.configurations[vnfd.name] = angular.copy(vnfd.configurations);
+	            	}
+        		});
+
+        		$scope.loadVnfdTabs();       
+            })
+            .error(function (data, status) {
+            	showError(data, status);
+			});
+    }    
+
+
+	$scope.tabs = [];    
+    $scope.loadVnfdTabs = function () {
+        $scope.tabs = [];
+        var i;
+        for (i = 0; i < $scope.nsd.vnfd.length; i++) {
+            newVNFD = {"vnfdname": $scope.nsd.vnfd[i].name, "vim": [], "vduLevel": false, "vdu": []};
+            console.log(newVNFD);
+
+            var tab = {};
+            tab['id'] = i;
+            tab['title'] = $scope.nsd.vnfd[i].name;
+            tab['active'] = true;
+            tab['disabled'] = false;
+            tab['vnfd'] = $scope.nsd.vnfd[i];
+
+            $scope.tabs.push(tab);
+        }
+    };
+    
 	$scope.nsdIdNameAssoc = [];
 	$scope.nsdIdVNFDIdAssoc = [];	
 	$scope.nsdIdVimAssoc = [];
 	$scope.nfdIdNameAssoc = [];
 	$scope.vnfdLinkAssoc = [];    
-    $scope.vLinks = [];
+
     function computeAssociativeDStructures() {
 		var descriptors = JSON.parse(JSON.stringify( $scope.nsdescriptors));
 		for(var nsd in descriptors) {	
@@ -224,6 +273,16 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
                 showError(status, data);
 			});
 	}
+	
+	function loadInterPoPLinks() {
+    	http.get(urlInterPoPLinks)
+        	.success(function (response) {
+            	$scope.interPoPLinks = response;
+			})
+			.error(function (data, status) {
+                showError(status, data);
+			});
+	}
     
     
     function loadPoPs() {
@@ -272,7 +331,7 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
         http.post(urlNSD + 'multipledelete', ids)
             .success(function (response) {
                 showOk('Items with id: ' + ids.toString() + ' deleted.');
-                loadNSD();
+                loadNSDs();
             })
             .error(function (response, status) {
                 showError(response, status);
@@ -330,17 +389,17 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
     	$scope.selectionSlice = {};
     	$scope.selectionSlice.ids = {};   
 		$scope.NSDInstanceJson = {};
-    	$scope.pepEnabled = false;  
-    	$scope.selectionLink = {};
-		$scope.selectionLink.ids = {};
+    	$scope.selectionInterPoPLink = {};
+		$scope.selectionInterPoPLink.ids = {};
 
 		//configurations		
 		$scope.launchKeys = [];
         $scope.launchObj = {};
         $scope.launchConfiguration = {"configurations": {}};
         $scope.monitoringIp = undefined;
-//		$scope.nsdToSend = undefined;
-		$scope.vLinks = [];
+		$scope.nsdToSend = undefined;
+		$scope.links = [];
+		
     	$scope.vimsOfInterest = {};
     	$scope.vimsOfInterest.vim = [];		
         $scope.confOk = false;
@@ -368,28 +427,7 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
                 
         $scope.nsdToSend = nsdIds;	
 	}    
-
-    $scope.vimsOfInterest = {};
-    $scope.vimsOfInterest.vim = [];
-	function computeVimsOfInterest() {
-		for (i = 0; i < $scope.nsdIdVimAssoc.length; i++) 
-		{
-			var inspect = $scope.nsdIdVimAssoc[i];
-			if(inspect['nsdId'] == $scope.nsdToSend) {
-				$scope.vimsOfInterest.vim.push(inspect['vim']);
-				console.log('adding a value: ' + inspect['vim']);
-			}
-		}
-	}    
-	
-    $scope.isVimOfInterest = function (popName) {
-		for(i = 0; i < $scope.vimsOfInterest['vim'].length; i++ ) {
-			if($scope.vimsOfInterest['vim'][i] == popName)
-				return 1;
-		}
-		return -1;
-    };
-		
+			
     function env() {
     
 		computeSelectedNSD();
@@ -419,7 +457,6 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
             }
         });		   
         
-        $scope.launchObj.vnfpep = $scope.pepEnabled;
     }
     
 	function confAllSelected() {
@@ -439,8 +476,16 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
             	//console.log('deploying on slice: ' + sliceName);
             }
         });		   
+        
+//		var interPoPLinkSelected = false;        	
+//        angular.forEach($scope.selectionInterPoPLink.ids, function (truefalse, name) {
+//            if (truefalse) {
+//				interPoPLinkSelected = true;
+//            }else {
+//            }
+//        });		           
         		
-		$scope.confOk = nsdSelected && sliceSelected;
+		$scope.confOk = nsdSelected && sliceSelected; // && interPoPLinkSelected;
 	}
          
     $scope.deploy = function () {
@@ -453,10 +498,10 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
 		
 		//add configured vlds to configuration envinronment
         $scope.launchObj.link = [];
-        for (i = 0; i < $scope.vLinks.length; i++) 
+        for (i = 0; i < $scope.links.length; i++) 
         {      
 			$scope.launchObj.link.push(
-				$scope.vLinks[i]['netName']
+				$scope.links[i]['netName']
 			);
 		}
 
@@ -477,8 +522,7 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
     /* -- deploy functions END  -- */            
 
 	$scope.onClickNSD = function(nsdId) {
-		$scope.nsdToSend = nsdId;	
-		$scope.vLinks = [];
+		$scope.nsdToSend = nsdId;//first time check, otherwise refined later
         angular.forEach($scope.selectionNSD.ids, function (truefalse, id) {
             if (nsdId !== id) {
 				$scope.selectionNSD.ids[id] = false;
@@ -488,7 +532,6 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
             }
 
 		computeSelectedNSD();
-		computeVimsOfInterest();
         });
 	}
 	
@@ -502,28 +545,28 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
         });
 	}	
 
-	$scope.onClickLink = function(link) {
-        angular.forEach($scope.selectionLink.ids, function (truefalse, entry) 
+	$scope.onClickInterPoPLink = function(link) {
+        angular.forEach($scope.selectionInterPoPLink.ids, function (truefalse, entry) 
         {
            	if(entry == link)//this triggered the event 
            	{
            		if(!truefalse) 
            		{//uncheck
-					$scope.selectionLink.ids[entry] = false;
-					for (i = 0; i < $scope.vLinks.length; i++) 
+					$scope.selectionInterPoPLink.ids[entry] = false;
+					for (i = 0; i < $scope.links.length; i++) 
 					{
-						var inspect = $scope.vLinks[i];
+						var inspect = $scope.links[i];
 						if(inspect['netName'] == link) {							
-							$scope.vLinks.splice(i, 1);
+							$scope.links.splice(i, 1);
 						}
 					}
 				}else {//check
-					$scope.vLinks.push({
+					$scope.links.push({
 		    	        netName: link			
 					});					
 				}
 			}
         });
-	}
-		
+		console.log('selected links are: ' + $scope.links);
+	}		
 });

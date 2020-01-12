@@ -93,7 +93,7 @@
 								<td><input ng-disabled="true" type="checkbox" ng-model="main.checkbox"></td>
 				                <th class="col-sm-4" ng-click="predicate = 'id'; reverse = !reverse">Id <i class="fa fa-sort"></i>
 				                </th>
-								<th> Ingress IP</th>						
+								<th> Subnetwork</th>						
 								<th> Description</th>														
 	                        </tr>							
 	                        </thead>
@@ -101,8 +101,8 @@
 	                        <tr ng-repeat="data in slices">
 								<td><input type="checkbox" ng-init="selectionSlice.ids[data.name] = false" ng-model="selectionSlice.ids[data.name]"
 				                	name="group" id="{{data.name}}" ng-click="onClickSlice(data.name)"/></td>
-	                            <td> {{data.apnName}}</td>
-	                            <td> {{data.ingressIp}}</td>
+	                            <td> {{data.name}}</td>
+	                            <td> {{data.subnetwork}}</td>
 	                            <td> {{data.description}}</td>	                            
 	                        </tr>
 	                        </tbody>
@@ -110,67 +110,30 @@
 	                </div>
 	            </tab>
 
-	            <tab heading="3. Virtual Link">
+	            <tab heading="3. InterPoP Link">
 	                <div class="table-responsive">
-	                </p>
-	                <table ng-table="tableParamspaginationNSD" class="table table-hover">
-						<thead>
-	                    	<tr>
-								<th class="text-center"> Network Function </th>
-	                        	<th class="text-center"> (V)Links </th>
-							</tr>
-						</thead>
-						<tr>
-							<td>						                            				
-								<table class="table table-hover" id="vnfdTabletable1">
-		                            <thead>
-		                            <tr>
-		                                <th class="col-sm-4" ng-click="predicate = 'id'; reverse = !reverse">VNF Id<i
-		                                        class="fa fa-sort" class="text-center"></i>
-		                                </th>
-		                                <th ng-click="predicate = 'name'; reverse = !reverse">VNFD Name <i
-		                                        class="fa fa-sort" class="text-center"></i></th>
-		                                <th class="text-center"></i>PoP</th>		                                        
-		                            </tr>
-		                            </thead>
-		                            <tbody ng-repeat="nsd in $data" ng-show="nsdToSend !== undefined">
-			                        	<tr ng-repeat="vnfd in nsd.vnfd | orderBy:predicate:reverse" ng-if="nsd.id == nsdToSend"> <!---->
-			                                <td><a href="#nsdescriptors/{{nsd.id}}/vnfdescriptors/{{vnfd.id}}">{{vnfd.id}}</a>
-			                                </td>
-			                                <td>{{vnfd.name}}</td> 
-			                                <td>{{vnfd.vdu[0].vimInstanceName}}</td> 			                                
-			                            </tr>
-		                            </tbody>
-		                        </table>
-		                     </td>
-		                     <td>
-								<table class="table table-hover"
-		                                class="table table-hover"
-		                                id="vnfdTabletable2">
-						        	<thead>
-										<tr>
-						                	<th>&nbsp;</th>
-						                    <th class="text-center">PoP</th>                                        
-						                    <th class="text-center">Network</th>
-										</tr>
-									</thead>										
-										<tbody ng-repeat="pop in pops" ng-show="nsdToSend !== undefined" ng-if="isVimOfInterest(pop.name) > 0">
-											<tr ng-repeat="network in pop.networks"
-												ng-if="network.name !== 'none' && network.name !== 'host' && network.name !== 'bridge' 
-												&& network.name !== 'localhost'">
-					                    		<td><input type="checkbox" ng-init="selectionLink.ids[network.name] = false"
-					                            		ng-model="selectionLink.ids[network.name]" name="group" id="{{network.name}}" 
-					                               		ng-click="onClickLink(network.name)">
-												</td>
-												<td align="center">{{pop.name}}</td>
-												<td align="center">{{network.name}}</td>
-											</tr>
-										</tbody>					                             
-								</table>
-							 </td>
-						</tr>
-	                </table>							                                                     				                             
-                    </div>    
+	                    <table class="table table-bordered table-striped table-hover tablesorter"
+	                           ng-show="interPoPLinks.length > 0">
+	                        <thead>
+	                        <tr>
+								<td><input ng-disabled="true" type="checkbox" ng-model="main.checkbox"></td>
+				                <th class="col-sm-4" ng-click="predicate = 'id'; reverse = !reverse">Id <i class="fa fa-sort"></i>
+				                </th>
+								<th> Subnetwork</th>						
+								<th> Description</th>														
+	                        </tr>							
+	                        </thead>
+	                        <tbody>
+	                        <tr ng-repeat="data in interPoPLinks">
+								<td><input type="checkbox" ng-init="selectionInterPoPLink.ids[data.name] = false" ng-model="selectionInterPoPLink.ids[data.name]"
+				                	name="group" id="{{data.name}}" ng-click="onClickInterPoPLink(data.name)"/></td>
+	                            <td> {{data.name}}</td>
+	                            <td> {{data.subnetwork}}</td>
+	                            <td> {{data.description}}</td>	                            
+	                        </tr>
+	                        </tbody>
+	                    </table>
+	                </div>
 	            </tab>
 <!--
 	            <tab heading="3. Available links">
@@ -214,64 +177,26 @@
 										<tr>
 											<td style="font-weight:bold">Service Name</td>
 											<td>{{nsdIdNameAssoc[nsdToSend]}}</td>
-										</tr>										
+										</tr>
 										<tr ng-repeat="(key, value) in selectionSlice.ids" ng-if="value !== false">
 											<td style="font-weight:bold">Slice Name</td>
 											<td>{{key}}</td>										
 										</tr>
-										<tr>
-											<td style="font-weight:bold">VNFPeP enabled</td>
-											<td>{{pepEnabled}}</td>
-										</tr>										
 										
 					                </tbody>
 					            </table>
 					        </div>
 					    </div>
 					</div>
-					<div class="col-lg-12">
-						<div>
-							<div>
-								<tabset>
-									<tab ng-repeat="nsdVNFAssoc in nsdIdVNFDIdAssoc" ng-show="nsdVNFAssoc['nsdId']==nsdToSend" 
-											heading="{{nfdIdNameAssoc[nsdVNFAssoc['vnfdId']]}}">
-										<div class="table-responsive">
-											<h4>Virtual Link</h4>
-											<table class="table table-bordered table-hover tablesorter" id="vLinkSummary">
-												<thead>
-													<tr>
-														<th>Name <i class="fa fa-sort"></i></th>
-													</tr>
-												</thead>
-												<tbody>
-													<tr ng-repeat="entry in vLinks" ng-if="nsdToSend!==undefined">
-														<td>{{entry.netName}}</td>			
-													</tr>
-												</tbody>
-											</table>
-										</div>
-									</tab>
-								<tabset>
-							</div>
-						</div>
-					</div>
-					
-					<div class="row">
-	    				<div class="btn">
-			        		<label>
-							<input type="checkbox" ng-init="pepEnabled = false"
-					                       ng-model="pepEnabled" name="group" id="pepsatellite" class="btn btn-danger right"
-							        ng-style="{'margin-left':'25px'}"/>
-							Enable VNFPeP
-						<label>
-						</div>
+				
 						<div class="btn-group right">
-							<button id="deployButton" href="#" ng-click="deploy()" class="btn btn-danger pull-right"
+							<button id="deployButton" href="#" ng-click="loadNSD(nsdToSend)" data-toggle="modal" data-target="#launchFormConfig" data-backdrop="static"
+                                       data-keyboard="false" class="btn btn-danger pull-right"
 							        ng-style="{'margin-left':'25px'}"
 							        title="Deploy Service">Launch
 							</button>
 						</div>
-					</div>
+					</div>					
 	            </tab>		            
 	        </tabset>      
     </div>
@@ -351,3 +276,82 @@
     </div>
     <!-- /.modal-dialog -->
 </div>    
+
+<div class="modal fade" tabindex="-1" role="dialog" id="launchFormConfig" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="width: 120%">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Launch Network Service Descriptor</h4>
+            </div>
+            <div class="modal-body">
+                <div class="container" style="width: 100%">
+                    <ul class="nav nav-pills nav-stacked col-md-2">
+                        <li><a href="#ConfigurationParameters" data-toggle="pill">Configuration Parameters</a></li>
+                    </ul>
+                    <div class="tab-content col-md-10">
+
+                        <div class="tab-pane" id="ConfigurationParameters">
+                            <div class="container-fluid">
+                                <p>
+                                    <br>
+                                    Configuration parameters are the dynamic parameters and would be used during
+                                    lifecycle events
+                                </p>
+                                <tabset>
+                                    <tab ng-repeat="vnfdname in vnfdnames track by $index" heading={{vnfdname}}>
+                                        <br>
+                                        <table class="col-md-12">
+                                            <tr ng-repeat="conf in launchConfiguration.configurations[vnfdname].configurationParameters track by $index">
+                                                <td class="row"
+                                                    style="padding: 7px !important; border-top: none !important; border-bottom: none !important; border-right: none !important; border-left: none !important;width: 20%;">
+
+                                                    <div class="col-md-10 row">
+                                                        <b for="keyName">{{conf.confKey}}
+                                                            <a style="color: black;" data-toggle="tooltip"
+                                                               title="{{conf.description}}"><i
+                                                                    class="fa fa-question-circle"
+                                                                    aria-hidden="true"></i></a>:
+                                                        </b>
+                                                    </div>
+                                                </td>
+                                                <div>
+                                                    <td class="row"
+                                                        style="padding: 7px !important; border-top: none !important; border-bottom: none !important; border-right: none !important; border-left: none !important; width: 70%;">
+                                                        <input style="border: 1px solid #ccc; border-radius: 3px; padding: 5px;width: 90%;"
+                                                               id="Configuration Name"
+                                                               ng-model="conf.value"
+                                                        />
+                                                </div>
+                                                </td>
+                                                <td class="row"
+                                                    style="padding: 7px !important; border-top: none !important; border-bottom: none !important; border-right: none !important; border-left: none !important;width: 10%;">
+                                                    <div class="col-md-2">
+                                                        <button data-toggle="tooltip" title='Delete'
+                                                                class="btn btn-danger right"
+                                                                ng-hide="conf.id.length > 0" type="button"
+                                                                ng-click="removeConf($index, vnfdname)">
+                                                            -
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                    </tab>
+                                </tabset>
+                            </div>
+                        </div>
+
+                    </div><!-- tab content -->
+                </div><!-- end of container -->
+            </div>
+            <div class="modal-footer">
+                <a class="btn left btn-danger" data-dismiss="modal">Cancel</a>
+                <button class="btn  btn-success" 
+                	data-dismiss="modal" ng-click="deploy()">Launch
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

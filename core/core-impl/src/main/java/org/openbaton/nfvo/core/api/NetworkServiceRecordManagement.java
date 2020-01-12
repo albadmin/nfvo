@@ -132,7 +132,8 @@ public class NetworkServiceRecordManagement
       Map<String, Set<String>> vduVimInstances,
       Map<String, Configuration> configurations,
       String monitoringIp,
-      List<String> vlink)
+      String slice,
+      List<String> interPoPLinks)
       throws VimException, NotFoundException, PluginException, BadRequestException, IOException,
           AlreadyExistingException, BadFormatException, ExecutionException, InterruptedException {
 
@@ -169,7 +170,7 @@ public class NetworkServiceRecordManagement
       body.setKeys(keys1);
     }
 
-    return deployNSR(networkServiceDescriptor, projectID, body, monitoringIp, vlink);
+    return deployNSR(networkServiceDescriptor, projectID, body, monitoringIp, slice, interPoPLinks);
   }
 
   @Override
@@ -214,7 +215,7 @@ public class NetworkServiceRecordManagement
       }
       body.setKeys(keys1);
     }
-    return deployNSR(networkServiceDescriptor, projectID, body, monitoringIp, null);
+    return deployNSR(networkServiceDescriptor, projectID, body, monitoringIp, null, null);
   }
 
   @Override
@@ -456,7 +457,7 @@ public class NetworkServiceRecordManagement
           AlreadyExistingException, BadFormatException, ExecutionException, InterruptedException {
     networkServiceDescriptor.setProjectId(projectId);
     DeployNSRBody body = getDeployNSRBody(keys, vduVimInstances, configurations, projectId);
-    return deployNSR(networkServiceDescriptor, projectId, body, monitoringIp, null);
+    return deployNSR(networkServiceDescriptor, projectId, body, monitoringIp, null, null);
   }
 
   private DeployNSRBody getDeployNSRBody(
@@ -1248,14 +1249,15 @@ public class NetworkServiceRecordManagement
       String projectID,
       DeployNSRBody body,
       String monitoringIp,
-      List<String> vlink)
+      String slice,
+      List<String> interPoPLinks)
       throws NotFoundException, VimException, BadRequestException, BadFormatException,
           ExecutionException, InterruptedException {
 
-    if (vlink != null) {
+    if (slice != null && interPoPLinks != null) {
       //    log.info("NetworkServiceDescriptor before modification: " + networkServiceDescriptor +
       // "\n\n");
-      nsdUtils.wizzardAttachLinks(networkServiceDescriptor, vlink);
+      nsdUtils.wizzardAttachLinks(networkServiceDescriptor, slice, interPoPLinks);
       //    log.info("NetworkServiceDescriptor after modification: " + networkServiceDescriptor +
       // "\n\n");
       nsdUtils.fillInConfigurationEnvironment(networkServiceDescriptor);

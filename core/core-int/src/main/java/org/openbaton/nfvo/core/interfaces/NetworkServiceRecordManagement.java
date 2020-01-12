@@ -45,7 +45,8 @@ public interface NetworkServiceRecordManagement {
       Map<String, Set<String>> vduVimInstances,
       Map<String, Configuration> configurations,
       String monitoringIp,
-      List<String> vlink)
+      String slice,
+      List<String> interPoPlink)
       throws VimException, NotFoundException, PluginException, BadRequestException, IOException,
           AlreadyExistingException, BadFormatException, ExecutionException, InterruptedException;
 

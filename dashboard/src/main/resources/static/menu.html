@@ -78,7 +78,7 @@
                             <a href="#main"><i class="fa fa-dashboard fa-fw"></i> Overview</a>
                         </li>
 <!-- commented out --> 
-                        <li>
+                        <li ng-show="admin()">
                             <a href="#"><i class="fa fa-database fa-fw"></i> Catalogue<span class="fa arrow"></span></a>
                             <ul class="nav nav-second-level metismenu">
 
@@ -109,7 +109,7 @@
                             <!-- /.nav-second-level -->
                         </li>
 <!-- commented out -->
-                        <li>                                                       
+                        <li ng-show="admin()">                                                       
                             <a href="#"><i class="fa fa-cogs fa-fw"></i> VIBeS<span
                                     class="fa arrow"></span></a>
                             <ul class="nav nav-second-level metismenu">
@@ -125,7 +125,7 @@
                             </ul>
                         </li>
 <!-- Commented out -->
-                        <li>
+                        <li ng-show="admin()">
                             <a href="#"><i class="fa fa-cogs fa-fw"></i> Orchestrate NS<span
                                     class="fa arrow"></span></a>
                             <ul class="nav nav-second-level metismenu">
@@ -140,7 +140,7 @@
                             </ul>
                         </li>
 <!-- Commented out -->
-                        <li>
+                        <li ng-show="admin()">
                             <a href="#"><i class="fa fa-sitemap fa-fw"></i> Manage PoPs<span
                                     class="fa arrow"></span></a>
                             <ul class="nav nav-second-level metismenu">

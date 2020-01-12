@@ -16,7 +16,6 @@
 
 package org.openbaton.catalogue.nfvo.vibeswizzard;
 
-import java.util.Random;
 import javax.persistence.Entity;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
@@ -33,48 +32,28 @@ public class BaseSlice extends BaseEntity {
 
   @NotNull
   @Size(min = 1)
-  protected String name;
-
-  @NotNull
-  @Size(min = 1)
   protected String description;
 
   @NotNull
   @Size(min = 1)
-  protected String ingressIp;
+  protected String subnetwork;
 
   @NotNull
   @Size(min = 1)
-  protected String apnName;
+  protected String name;
 
-  private static Random rand = new Random();
-
-  public static BaseSlice getRandomSlice() {
-    String suff = String.valueOf(rand.nextInt(100));
-    return new BaseSlice("name" + suff, "description" + suff, "ingressIp", "apn" + suff);
-  }
-
-  public BaseSlice(String name, String description, String ingressIp, String apnName) {
+  public BaseSlice(String name, String description, String subnetwork) {
     this.name = name;
     this.description = description;
-    this.ingressIp = ingressIp;
-    this.apnName = apnName;
+    this.subnetwork = subnetwork;
   }
 
-  public String getIngressIp() {
-    return ingressIp;
+  public String getSubNetwork() {
+    return subnetwork;
   }
 
-  public void setIngressIp(String ingressIp) {
-    this.ingressIp = ingressIp;
-  }
-
-  public String getApnName() {
-    return apnName;
-  }
-
-  public void setApnName(String apnName) {
-    this.apnName = apnName;
+  public void setSubNetwork(String subnetwork) {
+    this.subnetwork = subnetwork;
   }
 
   public String getName() {
