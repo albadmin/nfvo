@@ -1255,13 +1255,10 @@ public class NetworkServiceRecordManagement
           ExecutionException, InterruptedException {
 
     if (slice != null && interPoPLinks != null) {
-      //    log.info("NetworkServiceDescriptor before modification: " + networkServiceDescriptor +
-      // "\n\n");
       nsdUtils.wizzardAttachLinks(networkServiceDescriptor, slice, interPoPLinks);
-      //    log.info("NetworkServiceDescriptor after modification: " + networkServiceDescriptor +
-      // "\n\n");
-      nsdUtils.fillInConfigurationEnvironment(networkServiceDescriptor);
+      nsdUtils.fillInConfigurationEnvironment(networkServiceDescriptor, body);
     }
+
     log.debug("Checking if all vnfm are registered and active");
     Iterable<VnfmManagerEndpoint> endpoints = vnfmManagerEndpointRepository.findAll();
     nsdUtils.checkEndpoint(networkServiceDescriptor, endpoints);

@@ -36,6 +36,7 @@ import org.jgrapht.alg.cycle.DirectedSimpleCycles;
 import org.jgrapht.alg.cycle.SzwarcfiterLauerSimpleCycles;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedPseudograph;
+import org.openbaton.catalogue.api.DeployNSRBody;
 import org.openbaton.catalogue.mano.common.AbstractVirtualLink;
 import org.openbaton.catalogue.mano.common.DeploymentFlavour;
 import org.openbaton.catalogue.mano.common.LifecycleEvent;
@@ -826,7 +827,7 @@ public class NSDUtils {
     }
   }
 
-  public void fillInConfigurationEnvironment(NetworkServiceDescriptor nsd) {
+  public void fillInConfigurationEnvironment(NetworkServiceDescriptor nsd, DeployNSRBody body) {
     for (VirtualNetworkFunctionDescriptor vnfd : nsd.getVnfd()) {
       Configuration conf = vnfd.getConfigurations();
       Set<ConfigurationParameter> cparams = conf.getConfigurationParameters();
@@ -847,6 +848,36 @@ public class NSDUtils {
           case "component_name":
             {
               cp.setValue(vnfd.getName());
+              break;
+            }
+          default:
+            {
+            }
+        }
+      }
+      log.info("updated conf. " + vnfd.getName() + " resulting in: " + cparams);
+    }
+
+    // XXX: update config. body also
+    log.info("body confs: " + body.getConfigurations().keySet());
+    for (String vnfName : body.getConfigurations().keySet()) {
+      Configuration c = body.getConfigurations().get(vnfName);
+      Set<ConfigurationParameter> cc = c.getConfigurationParameters();
+      for (ConfigurationParameter ccc : cc) {
+        switch (ccc.getConfKey()) {
+          case "project_id":
+            {
+              ccc.setValue(nsd.getProjectId());
+              break;
+            }
+          case "nsd_id":
+            {
+              ccc.setValue(nsd.getId());
+              break;
+            }
+          case "component_name":
+            {
+              ccc.setValue(vnfName);
               break;
             }
           default:
