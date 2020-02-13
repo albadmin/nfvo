@@ -77,6 +77,22 @@ public class CustomUserDetailsService implements UserDetailsManager {
       log.debug("Admin user exists already.");
     }
 
+    if (!userExists("vibes")) {
+      User ob_vibes = new User();
+      ob_vibes.setUsername("vibes");
+      ob_vibes.setEnabled(true);
+      ob_vibes.setPassword(BCrypt.hashpw("vibesob", BCrypt.gensalt(12)));
+      Set<Role> roles = new HashSet<>();
+      Role role = new Role();
+      role.setRole(RoleEnum.VIBES);
+      role.setProject("default");
+      roles.add(role);
+      ob_vibes.setRoles(roles);
+      createUser(ob_vibes);
+    } else {
+      log.debug("Vibes user exists already.");
+    }
+
     log.debug("Users in the DB: ");
     for (User user : userRepository.findAll()) {
       log.debug("" + user);
