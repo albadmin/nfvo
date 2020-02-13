@@ -25,9 +25,6 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
     $scope.interPoPLinks = [];
     $scope.links = [];//actually selected links   
     
-    var urlPoPs = baseUrl + 'pops/';
-	$scope.pops = [];
-
 	$scope.selectionInterPoPLink = {};
 	$scope.selectionInterPoPLink.ids = {};
 
@@ -36,7 +33,6 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
     $scope.selectionSlice.ids = {};
 	loadSlices();
 	loadInterPoPLinks();
-    loadPoPs();
 
     var urlNSD = baseUrl + 'ns-descriptors/';  
     var paginationNSD = [];
@@ -142,7 +138,6 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
         	.success(function (response, status) {
             	$scope.nsdescriptors = response;
                 $scope.tableParamspaginationNSD.reload();
-				//XXX: computed always - put this funct. in place where we first get the descriptors
 				computeAssociativeDStructures();
             })
             .error(function (data, status) {
@@ -175,7 +170,6 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
             	showError(data, status);
 			});
     }    
-
 
 	$scope.tabs = [];    
     $scope.loadVnfdTabs = function () {
@@ -285,17 +279,6 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
 	}
     
     
-    function loadPoPs() {
-		http.get(urlPoPs)
-        	.success(function (response, status) {
-            	$scope.pops = response;
-
-			})
-            .error(function (data, status) {
-            	showError(data, status);
-			});
-    }
-    
 	var paginationNSD = [];
     $scope.tableParamspaginationNSD = new NgTableParams({
             page: 1,
@@ -400,8 +383,6 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
 		$scope.nsdToSend = undefined;
 		$scope.links = [];
 		
-    	$scope.vimsOfInterest = {};
-    	$scope.vimsOfInterest.vim = [];		
         $scope.confOk = false;
 		$scope.tableParamspaginationNSD.reload();        
     }   
@@ -567,6 +548,6 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
 				}
 			}
         });
-		console.log('selected links are: ' + $scope.links);
+//		console.log('selected links are: ' + $scope.links);
 	}		
 });

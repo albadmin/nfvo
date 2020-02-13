@@ -74,7 +74,7 @@
             <div style="width: 250px;border-top:1px solid #e7e7e7;" class="navbar-default sidebar" role="navigation">
                 <div class="sidebar-nav">
                     <ul class="nav" id="side-menu">
-                        <li>
+                        <li ng-show="admin()">
                             <a href="#main"><i class="fa fa-dashboard fa-fw"></i> Overview</a>
                         </li>
 <!-- commented out --> 
@@ -109,7 +109,7 @@
                             <!-- /.nav-second-level -->
                         </li>
 <!-- commented out -->
-                        <li ng-show="admin()">                                                       
+                        <li ng-show="vibesUser() || admin()">                                                       
                             <a href="#"><i class="fa fa-cogs fa-fw"></i> VIBeS<span
                                     class="fa arrow"></span></a>
                             <ul class="nav nav-second-level metismenu">

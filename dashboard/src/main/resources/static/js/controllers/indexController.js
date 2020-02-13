@@ -135,7 +135,9 @@ app.controller('LoginController', function ($scope, AuthService, Session, $rootS
 app.controller('IndexCtrl', function ($document, $scope, $compile, $routeParams, serviceAPI, $interval, $cookieStore, $location, AuthService, http, $rootScope, $window, $route) {
     $('#side-menu').metisMenu();
     $scope.adminRole = "ADMIN";
+    $scope.vibesRole = "VIBES";    
     $scope.superProject = "*";
+    $scope.defaultProject = "default";    
     $scope.numberNSR = 0;
     $scope.numberNSD = 0;
     $scope.numberVNF = 0;
@@ -226,7 +228,7 @@ app.controller('IndexCtrl', function ($document, $scope, $compile, $routeParams,
     function loadCurrentUser() {
         http.get(url + '/users/current')
             .success(function (response) {
-                //console.log(response);
+                console.log('USer logged response: ' + response);
                 $scope.userLogged = response
             })
             .error(function (response, status) {
@@ -494,7 +496,18 @@ app.controller('IndexCtrl', function ($document, $scope, $compile, $routeParams,
         }
         return false;
     };
-
+    
+    $scope.vibesUser = function () {
+        console.log($scope.userLogged);
+        if (typeof $scope.userLogged != 'undefined') {
+            if ($scope.userLogged.roles[0].project === $scope.defaultProject && $scope.userLogged.roles[0].role === $scope.vibesRole) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return false;
+    };
 
     $(document).ready(function () {
     });
