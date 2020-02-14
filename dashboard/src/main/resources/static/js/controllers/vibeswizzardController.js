@@ -49,7 +49,34 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
     $scope.file = '';	
     
 	$scope.confOk = false;
-    
+
+    $scope.adminRole = "ADMIN";
+    $scope.userLogged;
+	loadCurrentUser();
+
+    function loadCurrentUser() {
+        http.get(baseURL + '/users/current')
+            .success(function (response) {
+                console.log('USer logged response: ' + response);
+                $scope.userLogged = response
+            })
+            .error(function (response, status) {
+                showError(response, status);
+            });
+    }
+
+    $scope.admin = function () {
+        //console.log($scope.userLogged);
+        if (typeof $scope.userLogged != 'undefined') {
+            if ($scope.userLogged.roles[0].project === $scope.superProject && $scope.userLogged.roles[0].role === $scope.adminRole) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return false;
+    };
+        
     $scope.loadUploadNSDDialog = function () {
 		$('#modalCreateNSDUploadjson').modal('show');
         $scope.NSDInstanceJson = response;

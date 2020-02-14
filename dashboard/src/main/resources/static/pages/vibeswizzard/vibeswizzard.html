@@ -41,7 +41,7 @@
 					                ng-style="{'margin-left':'25px'}"
 					                title="Delete all the selected NSDs" data-target="#deleteModal" data-toggle="modal">Delete
 					        </button>
-					        <div class="btn-group right">
+					        <div ng-show="admin()" class="btn-group right">
 					            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown"> On Board NSD
 					                <span class="caret"></span></button>
 					            <ul class="dropdown-menu" role="menu">
