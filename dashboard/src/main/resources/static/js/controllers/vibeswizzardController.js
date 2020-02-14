@@ -16,7 +16,7 @@
 
 var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope, $http, $compile, $cookieStore, $filter, $routeParams, http, serviceAPI, topologiesAPI, AuthService, $location, $interval, NgTableParams) {
 	var baseURL = $cookieStore.get('URL') + "/api/v1";
-    var baseUrl = $cookieStore.get('URL') + "/api/v1/wizard/";
+    var baseUrl = $cookieStore.get('URL') + "/api/v1/wizzard/";
 	$scope.alerts = [];
     var urlSlices = baseUrl + 'slices/';
     $scope.slices = [];

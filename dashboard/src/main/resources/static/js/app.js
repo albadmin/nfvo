@@ -147,22 +147,22 @@ angular.module('app', ['ngTable', 'ngRoute', 'ngSanitize', 'ui.bootstrap', 'ngCo
         }).when('/imagerepo/:imageId', {
             templateUrl: 'pages/imagerepo/imageinfo.html',
             controller: 'imagerepoctrl'
-		}).when('/wizard', {
+		}).when('/wizzard', {
             templateUrl: 'pages/vibeswizzard/vibeswizzard.html',
             controller: 'vibeswizzardCtrl'
-		}).when('/wizard/vnf-descriptors', {
+		}).when('/wizzard/vnf-descriptors', {
             templateUrl: 'pages/vibeswizzard/vibeswizzard.html',
             controller: 'vibeswizzardCtrl'                                    
-		}).when('/wizard/ns-descriptors', {
+		}).when('/wizzard/ns-descriptors', {
             templateUrl: 'pages/vibeswizzard/vibeswizzard.html',
             controller: 'vibeswizzardCtrl'            
-		}).when('/wizard/slices', {
+		}).when('/wizzard/slices', {
             templateUrl: 'pages/vibeswizzard/vibeswizzard.html',
             controller: 'vibeswizzardCtrl'
-		}).when('/wizard/pops', {
+		}).when('/wizzard/pops', {
             templateUrl: 'pages/vibeswizzard/vibeswizzard.html',
             controller: 'vibeswizzardCtrl'                        
-        }).when('/wizard/deploy/:id', {
+        }).when('/wizzard/deploy/:id', {
             templateUrl: 'pages/vibeswizzard/vibeswizzard.html',
             controller: 'vibeswizzardCtrl'
         }).otherwise({

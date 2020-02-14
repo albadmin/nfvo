@@ -65,7 +65,7 @@ import org.springframework.web.bind.annotation.*;
 import org.thavam.util.concurrent.blockingMap.BlockingHashMap;
 
 @RestController
-@RequestMapping("/api/v1/wizard")
+@RequestMapping("/api/v1/wizzard")
 public class RestVIBeSWizzard {
 
   private Logger log = LoggerFactory.getLogger(this.getClass());
