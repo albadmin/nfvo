@@ -61,5 +61,6 @@ public class Role extends BaseEntity implements GrantedAuthority {
     GUEST,
     USER,
     ADMIN,
+    VIBES,
   }
 }
