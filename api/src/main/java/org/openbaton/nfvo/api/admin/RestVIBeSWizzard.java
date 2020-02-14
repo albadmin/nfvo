@@ -65,7 +65,7 @@ import org.springframework.web.bind.annotation.*;
 import org.thavam.util.concurrent.blockingMap.BlockingHashMap;
 
 @RestController
-@RequestMapping("/api/v1/wizzard")
+@RequestMapping("/api/v1/wizard")
 public class RestVIBeSWizzard {
 
   private Logger log = LoggerFactory.getLogger(this.getClass());
@@ -151,10 +151,9 @@ public class RestVIBeSWizzard {
 
         if (body.has("link")) {
           fillInLinkConfig(body.get("link").getAsJsonArray(), interPoPLink);
+          log.info("InterPoPLink bundle is: " + interPoPLink);
         }
-        //        if (body.has("vnfpep")) {
-        //          pepEnabled = body.get("vnfpep").getAsBoolean();
-        //        }
+
       } catch (Exception e) {
         throw new BadRequestException("The passed request body is not correct.");
       }

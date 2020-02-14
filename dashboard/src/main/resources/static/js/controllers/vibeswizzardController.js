@@ -16,7 +16,7 @@
 
 var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope, $http, $compile, $cookieStore, $filter, $routeParams, http, serviceAPI, topologiesAPI, AuthService, $location, $interval, NgTableParams) {
 	var baseURL = $cookieStore.get('URL') + "/api/v1";
-    var baseUrl = $cookieStore.get('URL') + "/api/v1/wizzard/";
+    var baseUrl = $cookieStore.get('URL') + "/api/v1/wizard/";
 	$scope.alerts = [];
     var urlSlices = baseUrl + 'slices/';
     $scope.slices = [];
@@ -519,12 +519,14 @@ var app = angular.module('app').controller('vibeswizzardCtrl', function ($scope,
         http.post(urlDeploy + $scope.nsdToSend, $scope.launchObj)
             .success(function (response) {
                 showOk("Created Network Service Record from Descriptor with id: \<a href=\'\#nsrecords\'>" + $scope.nsdToSend + "<\/a>");
+        		removePriorConf();
             })
             .error(function (data, status) {
                 showError(data, status);
+        		removePriorConf();                
             });
 
-        removePriorConf();
+
     };   
     
     /* -- deploy functions END  -- */            

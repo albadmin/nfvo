@@ -16,7 +16,7 @@
 <div class="col-lg-12">
 	<h1>
     	VIBeS Service Instantiation
-		<small>Wizzard </small>
+		<small>Wizard </small>
 	</h1>
     <ol class="breadcrumb">
     	<li><a href="#main"><i class="fa fa-dashboard"></i>
@@ -36,12 +36,12 @@
 		        <tabset>
 		            <tab heading="1. Service Descriptors">
 						<div class="row">
-	    				<div class="col-lg-12">
+	    				<div ng-show="admin()" class="col-lg-12">
 					        <button id="deleteMultiple" href="#" ng-disabled="multipleDelete" class="btn btn-danger pull-right"
 					                ng-style="{'margin-left':'25px'}"
 					                title="Delete all the selected NSDs" data-target="#deleteModal" data-toggle="modal">Delete
 					        </button>
-					        <div ng-show="admin()" class="btn-group right">
+					        <div class="btn-group right">
 					            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown"> On Board NSD
 					                <span class="caret"></span></button>
 					            <ul class="dropdown-menu" role="menu">
